@@ -1,0 +1,904 @@
+<!-- ============================================================ -->
+<!-- MODAL: CRUD Stream Edit / Create                             -->
+<!-- ============================================================ -->
+<div id="stream-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--pad" style="max-width: 32rem;">
+        <div class="ms-modal__head">
+            <div><h3 id="modal-title" class="ms-modal__title">Add CCTV Stream URL</h3>
+                <p class="ms-modal__desc">Alamat RTSP, grup, dan koordinat kamera</p></div>
+            <button onclick="closeStreamModal()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form id="stream-form" onsubmit="handleStreamSubmit(event)" class="space-y-4">
+            <input type="hidden" id="modal-stream-id">
+            <div>
+                <label for="modal-stream-name" class="field-label">Camera Name / ID</label>
+                <input type="text" id="modal-stream-name" required
+                    class="app-input w-full"
+                    placeholder="e.g., Office Back Entrance">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="modal-stream-group" class="field-label">Camera Group</label>
+                    <input type="text" id="modal-stream-group" list="existing-groups-list" required
+                        class="app-input w-full"
+                        placeholder="e.g., Kantor">
+                    <datalist id="existing-groups-list">
+                        <!-- Dynamically populated via JS -->
+                    </datalist>
+                </div>
+                <div>
+                    <label for="modal-stream-coordinates" class="field-label">Coordinates (lat, lon)</label>
+                    <input type="text" id="modal-stream-coordinates"
+                        class="app-input w-full"
+                        placeholder="-6.2095, 106.8456">
+                </div>
+            </div>
+            <div>
+                <label for="modal-stream-rtsp" class="field-label">RTSP Target URL (Raw Source)</label>
+                <input type="text" id="modal-stream-rtsp" required
+                    class="app-input w-full"
+                    placeholder="rtsp://username:password@ip_address:554/path">
+                <p class="field-hint">RTSP credential links will remain securely hidden from user role profiles.</p>
+            </div>
+
+            <!-- Toggle Switches -->
+            <div class="space-y-2">
+                <!-- Active Feed Toggle -->
+                <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="p-1.5 rounded-md bg-emerald-500/10">
+                            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.07 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z"/></svg>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-700 dark:text-slate-200 font-mono">Active Feed</span>
+                            <span class="text-[9px] text-slate-500 dark:text-cyber-dim font-mono">Camera will be visible to users</span>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="modal-stream-active" class="sr-only peer" checked>
+                        <div class="w-10 h-5 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
+
+                <!-- Recording Toggle -->
+                <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/60">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="p-1.5 rounded-md bg-rose-500/10">
+                            <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
+                        </div>
+                        <div>
+                            <span class="block text-xs font-semibold text-rose-600 dark:text-rose-400 font-mono">Recording</span>
+                            <span class="text-[9px] text-slate-500 dark:text-cyber-dim font-mono">Simpan rekaman ke disk</span>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="modal-stream-record" class="sr-only peer"
+                            onchange="document.getElementById('recording-options').classList.toggle('hidden', !this.checked)">
+                        <div class="w-10 h-5 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-500"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Recording Options (expandable) -->
+            <div id="recording-options" class="hidden space-y-3 p-3 rounded-lg bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/40 dark:border-rose-800/30">
+                <div>
+                    <label for="modal-stream-disk" class="block text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-1.5 font-mono">Save to Disk</label>
+                    <select id="modal-stream-disk" class="app-input w-full text-xs">
+                        <option value="/">/ (Root)</option>
+                    </select>
+                    <p id="disk-info" class="field-hint"></p>
+                </div>
+                <div id="mirror-gdrive-wrap" class="hidden">
+                    <label class="flex items-start gap-2 cursor-pointer">
+                        <input type="checkbox" id="modal-stream-mirror-gdrive" class="mt-0.5">
+                        <span class="text-xs font-semibold text-rose-700 dark:text-rose-300">Juga simpan di Google Drive (keduanya)</span>
+                    </label>
+                    <p class="field-hint">Rekaman utama tetap di disk server di atas; salinan tiap segmen yang selesai juga disimpan ke Google Drive.</p>
+                </div>
+                <div class="p-2.5 bg-white/60 dark:bg-slate-900/40 rounded-lg border border-rose-200/30 dark:border-rose-800/20">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 font-mono mb-1">Recording Path</p>
+                    <p id="record-path-preview" class="text-[11px] font-mono text-sky-600 dark:text-sky-400 break-all font-semibold">{disk}/recordings/{group}/{nama_kamera}/</p>
+                    <p class="field-hint">Otomatis dari grup dan nama kamera</p>
+                </div>
+                <div>
+                    <label for="modal-stream-retention" class="block text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-1.5 font-mono">Retention (days)</label>
+                    <input type="number" id="modal-stream-retention" min="1" max="365" value="7" class="app-input w-24 text-xs">
+                    <p class="field-hint">Auto-delete recording lebih lama dari ini</p>
+                </div>
+            </div>
+
+            <div class="ms-modal__foot">
+                <button type="button" onclick="closeStreamModal()"
+                    class="px-4 py-2 bg-slate-100 dark:bg-cyber-bg border border-slate-200 dark:border-cyber-outline hover:border-slate-300 dark:hover:border-white text-slate-600 dark:text-cyber-text text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-sky-500 hover:bg-sky-600 dark:bg-cyber-primary dark:hover:bg-sky-500 text-white dark:text-cyber-bg text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-all duration-150 active:scale-95">
+                    Save Configuration
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: CRUD User Edit / Create                               -->
+<!-- ============================================================ -->
+<div id="user-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--pad" style="max-width: 28rem;">
+        <div class="ms-modal__head">
+            <div><h3 id="user-modal-title" class="ms-modal__title">Add User Account</h3>
+                <p class="ms-modal__desc">Akun, peran, dan grup pengelolanya</p></div>
+            <button onclick="closeUserModal()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form id="user-form" onsubmit="handleUserSubmit(event)" class="space-y-5">
+            <input type="hidden" id="modal-user-id">
+            <div>
+                <label for="modal-user-username" class="field-label">Username</label>
+                <input type="text" id="modal-user-username" required
+                    class="app-input w-full"
+                    placeholder="e.g., operator_123">
+            </div>
+            <div>
+                <label for="modal-user-password" id="modal-user-password-label" class="field-label">Password</label>
+                <input type="password" id="modal-user-password" required
+                    class="app-input w-full"
+                    placeholder="••••••••">
+                <p id="modal-user-password-help" class="field-hint hidden">Leave empty to keep current password.</p>
+            </div>
+            <div>
+                <label for="modal-user-role" class="field-label">Account Role</label>
+                <div class="app-field-wrap app-select-field">
+                    <span class="app-field-icon app-field-icon-left" aria-hidden="true">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </span>
+                    <select id="modal-user-role" required class="app-input app-select app-select-icon-left">
+                        <option value="user">USER (Penonton Kamera)</option>
+                        <option value="guest">GUEST (Akses Terbatas)</option>
+                        <option value="admin">ADMIN (Pengelola Bawahan)</option>
+                        <option value="super_admin">SUPER ADMIN (Kuasa Penuh)</option>
+                    </select>
+                    <span class="app-field-icon app-field-icon-right" aria-hidden="true">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Grup menentukan wewenang, jadi hanya Super Admin yang boleh
+                 mengubahnya: ia memilih dari daftar atau mengetik grup baru.
+                 Admin tetap melihat kolom ini, terkunci pada grupnya sendiri,
+                 supaya modalnya tidak berbeda bentuk tanpa sebab. -->
+            <div id="modal-user-grup-wrap" class="hidden">
+                <label for="modal-user-grup" class="field-label">Grup Pengguna</label>
+                <div class="app-field-wrap app-select-field">
+                    <span class="app-field-icon app-field-icon-left" aria-hidden="true">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-1a3 3 0 00-3-3h-1m-1-4a3 3 0 100-6 3 3 0 000 6zM7 20H2v-1a3 3 0 013-3h1m1-4a3 3 0 110-6 3 3 0 010 6zm5 8h4v-1a3 3 0 00-3-3h-2a3 3 0 00-3 3v1h4zm2-9a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </span>
+                    <select id="modal-user-grup" class="app-input app-select app-select-icon-left">
+                        <option value="">Belum masuk grup</option>
+                    </select>
+                    <span class="app-field-icon app-field-icon-right" aria-hidden="true">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </span>
+                </div>
+                <input type="text" id="modal-user-grup-baru" maxlength="60"
+                    autocomplete="off" placeholder="Nama grup baru"
+                    class="app-input w-full mt-2 hidden">
+                <p class="field-hint">Akun segrup saling terjangkau. Kosongkan bila akun ini belum masuk grup mana pun.</p>
+            </div>
+            <div id="modal-user-iklan-wrap" class="hidden flex items-center justify-between ms-modal__divider pt-4">
+                <div>
+                    <label for="modal-user-iklan" class="field-label mb-0">Tampilkan Iklan</label>
+                    <p id="modal-user-iklan-ket" class="field-hint">Berlaku utk semua akun tanpa grup</p>
+                </div>
+                <label class="ms-switch">
+                    <input type="checkbox" id="modal-user-iklan">
+                    <span class="ms-switch__track"></span>
+                </label>
+            </div>
+            <div class="ms-modal__foot">
+                <button type="button" onclick="closeUserModal()"
+                    class="px-4 py-2 bg-slate-100 dark:bg-cyber-bg border border-slate-200 dark:border-cyber-outline hover:border-slate-300 dark:hover:border-white text-slate-600 dark:text-cyber-text text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-sky-500 hover:bg-sky-600 dark:bg-cyber-primary dark:hover:bg-sky-500 text-white dark:text-cyber-bg text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-all duration-150 active:scale-95">
+                    Save User Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: Ganti Nama Grup                                       -->
+<!-- ============================================================ -->
+<div id="grup-nama-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--pad" style="max-width: 26rem;">
+        <div class="ms-modal__head">
+            <div><h3 class="ms-modal__title">Rename Group</h3>
+                <p class="ms-modal__desc">Seluruh anggota grup ikut berpindah sekaligus</p></div>
+            <button onclick="tutupGantiNamaGrup()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <form onsubmit="simpanNamaGrup(event)" class="space-y-5">
+            <div>
+                <label for="grup-nama-baru" class="field-label">Nama Grup</label>
+                <div class="app-field-wrap">
+                    <input type="text" id="grup-nama-baru" required maxlength="60" class="app-input">
+                </div>
+                <p class="pgn-ket mt-2">
+                    <span id="grup-nama-lama">&mdash;</span> &middot; <span id="grup-nama-jumlah">0</span> anggota ikut pindah
+                </p>
+            </div>
+            <div class="flex items-center justify-between ms-modal__divider pt-4">
+                <div>
+                    <label for="grup-nama-iklan" class="field-label mb-0">Tampilkan Iklan</label>
+                    <p class="field-hint">Berlaku utk seluruh anggota grup</p>
+                </div>
+                <label class="ms-switch">
+                    <input type="checkbox" id="grup-nama-iklan">
+                    <span class="ms-switch__track"></span>
+                </label>
+            </div>
+            <div class="flex justify-end space-x-3 pt-2">
+                <button type="button" onclick="tutupGantiNamaGrup()"
+                    class="px-4 py-2 bg-slate-100 dark:bg-cyber-bg border border-slate-200 dark:border-cyber-outline hover:border-slate-300 dark:hover:border-white text-slate-600 dark:text-cyber-dim text-xs font-bold uppercase tracking-wider rounded-md transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-sky-500 hover:bg-sky-600 dark:bg-cyber-primary dark:hover:bg-sky-500 text-white dark:text-cyber-bg text-xs font-bold uppercase tracking-wider rounded-md transition-colors">
+                    Save Group Name
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: CCTV Access Permissions Per-User Mapping              -->
+<!-- ============================================================ -->
+<div id="permissions-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--pad" style="max-width: 28rem;">
+        <div class="ms-modal__head">
+            <div>
+                <h3 id="permissions-modal-title" class="ms-modal__title">CCTV Access Mapping</h3>
+                <p id="permissions-modal-subtitle" class="ms-modal__desc">Kamera yang boleh dilihat akun ini</p>
+            </div>
+            <button onclick="closePermissionsModal()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <input type="hidden" id="permissions-modal-user-id">
+            <div class="border border-slate-200/50 dark:border-cyber-outline/40 rounded-md p-3 bg-slate-50 dark:bg-cyber-bg/50 max-h-72 overflow-y-auto">
+                <div id="permissions-camera-list" class="space-y-2.5">
+                    <!-- Cameras list checkboxes loaded dynamically -->
+                </div>
+            </div>
+            <div class="ms-modal__foot">
+                <button type="button" onclick="closePermissionsModal()"
+                    class="px-4 py-2 bg-slate-100 dark:bg-cyber-bg border border-slate-200 dark:border-cyber-outline hover:border-slate-300 dark:hover:border-white text-slate-600 dark:text-cyber-text text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-colors">
+                    Cancel
+                </button>
+                <button onclick="saveUserPermissions()" id="save-permissions-btn"
+                    class="px-4 py-2 bg-sky-500 hover:bg-sky-600 dark:bg-cyber-primary dark:hover:bg-sky-500 text-white dark:text-cyber-bg text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-all duration-150 active:scale-95">
+                    Save Permissions
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: Camera Access per Account                             -->
+<!-- ============================================================ -->
+<div id="berbagi-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--scroll ms-modal__panel--pad" style="max-width: 40rem;">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h3 id="berbagi-modal-title" class="ms-modal__title">Camera Sharing</h3>
+                <p id="berbagi-modal-subtitle" class="ms-modal__desc"></p>
+            </div>
+            <button onclick="window.tutupBerbagiKamera()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors" aria-label="Tutup">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <!-- Grup memperoleh kamera lewat kepemilikan Admin, bukan lewat
+                 pencentangan. Ditampilkan agar terbaca siapa saja yang berhak,
+                 tetapi diubahnya di baris grup — bukan di sini. -->
+            <div id="berbagi-grup-bagian" class="hidden">
+                <label class="field-label">Grup</label>
+                <div id="berbagi-grup-daftar" class="space-y-1.5"></div>
+                <p class="field-hint">Grup memegang kamera lewat Admin pemiliknya; ubah di baris grup.</p>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="field-label mb-0">Akun</label>
+                    <span id="berbagi-hitung" class="akses-lencana"></span>
+                </div>
+                <input type="text" id="berbagi-cari" placeholder="Cari akun&hellip;"
+                       oninput="window.saringBerbagi()"
+                       class="app-input w-full mb-2 text-xs" autocomplete="off">
+                <div class="border border-slate-200 dark:border-cyber-outline/40 rounded-lg max-h-72 overflow-y-auto">
+                    <div class="hidden sm:flex items-center gap-2 px-3 py-2 sticky top-0 z-10 bg-slate-50 dark:bg-cyber-surface2 border-b border-slate-200 dark:border-cyber-outline/40">
+                        <span class="flex-1 text-[9px] font-bold uppercase tracking-wider text-slate-600 dark:text-cyber-dim font-mono">Akun</span>
+                        <span class="w-14 text-center text-[9px] font-bold uppercase tracking-wider text-slate-600 dark:text-cyber-dim font-mono">Lihat</span>
+                        <span class="w-16 text-center text-[9px] font-bold uppercase tracking-wider text-slate-600 dark:text-cyber-dim font-mono">Rekaman</span>
+                    </div>
+                    <div id="berbagi-daftar" class="p-2 space-y-1"></div>
+                </div>
+                <p id="berbagi-catatan" class="field-hint hidden"></p>
+            </div>
+        </div>
+        <div class="flex justify-end gap-2 mt-5">
+            <button type="button" onclick="window.tutupBerbagiKamera()"
+                class="px-4 py-2 text-xs font-semibold uppercase tracking-wider font-mono rounded-lg border border-slate-200 dark:border-cyber-outline/50 text-slate-500 dark:text-cyber-dim hover:bg-slate-50 dark:hover:bg-cyber-hover/35 transition-colors">
+                Batal
+            </button>
+            <button onclick="window.simpanBerbagiKamera()" id="berbagi-simpan"
+                class="ms-btn-add px-4 py-2 text-xs font-semibold uppercase tracking-wider font-mono rounded-lg transition-colors">
+                Simpan
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="akses-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--scroll ms-modal__panel--pad" style="max-width: 34rem;">
+        <div class="ms-modal__head">
+            <div>
+                <h3 id="akses-modal-title" class="ms-modal__title">Camera Access</h3>
+                <p id="akses-modal-subtitle" class="ms-modal__desc"></p>
+            </div>
+            <button onclick="window.tutupAksesKamera()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div id="akses-modal-pilih-akun-wrap">
+                <label for="akses-modal-akun" class="field-label">Akun</label>
+                <div class="app-field-wrap app-select-field">
+                    <span class="app-field-icon app-field-icon-left" aria-hidden="true">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </span>
+                    <select id="akses-modal-akun" onchange="window.muatKameraAkses()" class="app-input app-select app-select-icon-left">
+                        <option value="">Pilih akun</option>
+                    </select>
+                    <span class="app-field-icon app-field-icon-right" aria-hidden="true">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </span>
+                </div>
+                <p id="akses-modal-catatan" class="field-hint hidden"></p>
+            </div>
+
+            <!-- Mode atur: sasarannya sudah pasti, jadi ditampilkan sebagai
+                 teks. Dropdown di atas tetap ada dan tetap menyimpan nilai
+                 yang dikirim, hanya disembunyikan — delapan tempat lain
+                 membaca nilainya untuk menentukan alamat penyimpanan. -->
+            <div id="akses-modal-akun-tetap" class="hidden">
+                <label class="field-label mb-2">Akun</label>
+                <div class="app-field-wrap">
+                    <span class="app-field-icon app-field-icon-left" aria-hidden="true">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </span>
+                    <p id="akses-modal-akun-nama"
+                       class="app-input flex items-center cursor-default select-text"></p>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="field-label mb-0">Kamera</label>
+                    <span id="akses-modal-hitung" class="akses-lencana"></span>
+                </div>
+                <input type="text" id="akses-modal-cari" placeholder="Cari kamera…"
+                    oninput="window.saringKameraAkses()"
+                    class="app-input w-full text-xs mb-2">
+                <div class="akses-kotak-kamera border border-slate-200/50 dark:border-cyber-outline/40 rounded-md bg-slate-50 dark:bg-cyber-bg/50 max-h-72 overflow-y-auto">
+                    <!-- Kepala kolom ikut di dalam kotak gulir agar lebarnya
+                         selalu lurus dengan centang di bawahnya, termasuk
+                         ketika bilah gulir muncul. -->
+                    <div id="akses-modal-kepala" class="hidden sticky top-0 z-10 flex items-center justify-between gap-2 px-3 py-2 bg-slate-100 dark:bg-cyber-bg border-b border-slate-200/60 dark:border-cyber-outline/40">
+                        <span class="text-[9px] font-mono uppercase tracking-wider text-slate-600 dark:text-cyber-dim">Kamera</span>
+                        <span class="flex items-center gap-2 shrink-0 text-[9px] font-mono text-slate-600 dark:text-cyber-dim">
+                            <span id="akses-kol-a" class="akses-kol text-center">LIVE</span>
+                            <span id="akses-kol-b" class="akses-kol text-center">REKAMAN</span>
+                            <span id="akses-kol-c" class="akses-kol text-center hidden">BAGIKAN</span>
+                        </span>
+                    </div>
+                    <div id="akses-modal-kamera" class="p-3">
+                        <p class="text-center text-xs text-slate-500 dark:text-cyber-dim py-4 font-mono">Pilih akun dahulu</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ms-modal__foot">
+                <button type="button" onclick="window.tutupAksesKamera()"
+                    class="px-4 py-2 bg-slate-100 dark:bg-cyber-bg border border-slate-200 dark:border-cyber-outline hover:border-slate-300 dark:hover:border-white text-slate-600 dark:text-cyber-text text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-colors cursor-pointer">
+                    Cancel
+                </button>
+                <button onclick="window.simpanAksesKamera()" id="akses-modal-simpan"
+                    class="px-4 py-2 bg-sky-500 hover:bg-sky-600 dark:bg-cyber-primary dark:hover:bg-sky-500 text-white dark:text-cyber-bg text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-all duration-150 active:scale-95 cursor-pointer">
+                    Simpan Akses
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: Camera Map View (Leaflet OpenStreetMap)               -->
+<!-- ============================================================ -->
+<div id="map-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--pad" style="max-width: 42rem;">
+        <!-- Header -->
+        <div class="ms-modal__head">
+            <div class="flex-1 min-w-0 mr-4">
+                <div class="flex items-center space-x-2 mb-1">
+                    <span class="inline-flex items-center justify-center p-1.5 bg-emerald-500/10 rounded-md border border-emerald-500/20 shrink-0">
+                        <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </span>
+                    <h3 id="map-modal-title" class="ms-modal__title truncate">Camera Location</h3>
+                </div>
+                <p class="ms-modal__desc pl-9">Titik kamera dan tautan ke peta luar</p>
+                <p id="map-modal-group" class="text-[10px] text-sky-600 dark:text-cyber-primary font-mono font-bold pl-9">—</p>
+                <p id="map-modal-coords" class="field-hint pl-9">No coordinates</p>
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+                <a id="map-gmaps-link" href="#" target="_blank" rel="noopener noreferrer"
+                    class="hidden items-center space-x-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase rounded-md tracking-wider transition-all duration-150 active:scale-95">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    <span>Google Maps</span>
+                </a>
+                <button onclick="closeMapModal()" class="p-1.5 text-slate-500 dark:text-cyber-dim hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-cyber-hover/60 rounded-md transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div id="camera-leaflet-map" class="w-full rounded-md border border-slate-200/50 dark:border-cyber-outline/40 overflow-hidden" style="height: 400px;"></div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-200/40 dark:border-cyber-outline/20">
+            <p class="field-hint">Map data © OpenStreetMap contributors</p>
+            <p class="field-hint">Scroll to zoom · Drag to pan</p>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: Bulk CCTV Add Configurations                          -->
+<!-- ============================================================ -->
+<div id="bulk-add-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--pad" style="max-width: 28rem;">
+        <div class="ms-modal__head">
+            <div><h3 class="ms-modal__title">Bulk Add CCTV Config</h3>
+                <p class="ms-modal__desc">Tambah banyak kamera sekaligus dari daftar</p></div>
+            <button type="button" onclick="closeBulkAddModal()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form id="bulk-add-form" onsubmit="window.handleBulkAddSubmit(event)" class="space-y-4">
+            <!-- Group Checkbox -->
+            <div class="flex items-center space-x-3 pt-1">
+                <input type="checkbox" id="bulk-enable-grouping" checked onchange="window.toggleBulkGroupInput(this.checked)"
+                    class="w-4 h-4 text-sky-600 bg-slate-100 border-slate-300 rounded focus:ring-sky-500 dark:bg-cyber-bg dark:border-cyber-outline focus:ring-0 cursor-pointer">
+                <label for="bulk-enable-grouping" class="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-cyber-dim font-mono cursor-pointer select-none">Kelompokkan ke dalam Grup</label>
+            </div>
+            
+            <!-- Group Name Input -->
+            <div id="bulk-group-input-container">
+                <label for="bulk-stream-group" class="field-label">Nama Grup Kamera</label>
+                <input type="text" id="bulk-stream-group" value="Scanned" list="existing-groups-list" required
+                    class="app-input w-full"
+                    placeholder="e.g., Scanned atau Kantor">
+            </div>
+
+            <!-- Coordinates Input -->
+            <div>
+                <label for="bulk-stream-coordinates" class="field-label">Koordinat Kamera (lat, lon)</label>
+                <input type="text" id="bulk-stream-coordinates" value=""
+                    class="app-input w-full"
+                    placeholder="-6.2095, 106.8456 (opsional)">
+            </div>
+
+            <!-- Naming Mode -->
+            <div>
+                <label for="bulk-naming-mode" class="field-label">Tipe Penamaan CCTV</label>
+                <select id="bulk-naming-mode" onchange="window.toggleBulkNamingPrefix(this.value)"
+                    class="app-input app-select-block w-full">
+                    <option value="original">Penamaan Asli (contoh: Kamera 192.168.36.242)</option>
+                    <option value="prefix-ip">Nama Kustom + IP (contoh: Lobi - 192.168.36.242)</option>
+                    <option value="prefix-seq">Nama Kustom + Nomor Urut (contoh: Lobi 1, Lobi 2, ...)</option>
+                </select>
+            </div>
+
+            <!-- Naming Prefix Input -->
+            <div id="bulk-naming-prefix-container" class="hidden">
+                <label for="bulk-naming-prefix" class="field-label">Nama Kustom (Prefix)</label>
+                <input type="text" id="bulk-naming-prefix"
+                    class="app-input w-full"
+                    placeholder="e.g., Lobi Depan">
+            </div>
+
+            <div class="ms-modal__foot">
+                <button type="button" onclick="closeBulkAddModal()"
+                    class="px-4 py-2 bg-slate-100 dark:bg-cyber-bg border border-slate-200 dark:border-cyber-outline hover:border-slate-300 dark:hover:border-white text-slate-600 dark:text-cyber-text text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-all duration-150 active:scale-95">
+                    Tambahkan Kamera
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: Bulk CCTV Coordinates Edit                            -->
+<!-- ============================================================ -->
+<div id="bulk-coords-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--pad" style="max-width: 28rem;">
+        <div class="ms-modal__head">
+            <div><h3 class="ms-modal__title">Bulk Edit Coordinates</h3>
+                <p class="ms-modal__desc">Ubah koordinat banyak kamera sekaligus</p></div>
+            <button type="button" onclick="window.closeBulkCoordsModal()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form id="bulk-coords-form" onsubmit="window.handleBulkCoordsSubmit(event)" class="space-y-4">
+            <!-- Coordinates Input -->
+            <div>
+                <label for="bulk-cctv-coordinates" class="field-label">Koordinat Kamera Baru (lat, lon)</label>
+                <input type="text" id="bulk-cctv-coordinates" required
+                    class="app-input w-full"
+                    placeholder="e.g., -6.2095, 106.8456">
+                <p class="field-hint">Koordinat ini akan diterapkan ke <span id="bulk-coords-target-count" class="font-bold text-sky-600 dark:text-cyber-primary">0</span> kamera terpilih secara bersamaan.</p>
+            </div>
+
+            <div class="ms-modal__foot">
+                <button type="button" onclick="window.closeBulkCoordsModal()"
+                    class="px-4 py-2 bg-slate-100 dark:bg-cyber-bg border border-slate-200 dark:border-cyber-outline hover:border-slate-300 dark:hover:border-white text-slate-600 dark:text-cyber-text text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-all duration-150 active:scale-95">
+                    Simpan Koordinat
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: API Setup Guide (Cara Set di Server Lain)             -->
+<!-- ============================================================ -->
+<div id="api-setup-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--scroll ms-modal__panel--pad" style="max-width: 40rem;">
+        <div class="ms-modal__head">
+            <div>
+                <h3 class="ms-modal__title">API Integration Guide</h3>
+                <p id="api-setup-client-title" class="ms-modal__desc">Cara memasang stream di server lain</p>
+            </div>
+            <button onclick="window.closeApiSetupModal()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <div class="space-y-5 text-xs text-slate-700 dark:text-cyber-text font-mono">
+            <!-- Alert domain whitelist / password -->
+            <div id="api-setup-security-notice" class="p-3 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 rounded-md text-[10px] hidden">
+                <strong>Catatan Keamanan:</strong> <span id="api-setup-security-text"></span>
+            </div>
+
+            <!-- Ringkasan kunci -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-cyber-bg/40 border border-slate-200/60 dark:border-cyber-outline/30">
+                    <div class="text-[9px] uppercase tracking-wider text-slate-600 dark:text-cyber-dim">Kamera</div>
+                    <div id="api-setup-stat-cam" class="text-sm font-bold text-sky-600 dark:text-cyber-primary mt-0.5">-</div>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-cyber-bg/40 border border-slate-200/60 dark:border-cyber-outline/30">
+                    <div class="text-[9px] uppercase tracking-wider text-slate-600 dark:text-cyber-dim">Playback</div>
+                    <div id="api-setup-stat-playback" class="text-sm font-bold mt-0.5">-</div>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-cyber-bg/40 border border-slate-200/60 dark:border-cyber-outline/30">
+                    <div class="text-[9px] uppercase tracking-wider text-slate-600 dark:text-cyber-dim">Domain</div>
+                    <div id="api-setup-stat-domain" class="text-[11px] font-bold text-slate-700 dark:text-cyber-text mt-0.5 truncate">-</div>
+                </div>
+                <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-cyber-bg/40 border border-slate-200/60 dark:border-cyber-outline/30">
+                    <div class="text-[9px] uppercase tracking-wider text-slate-600 dark:text-cyber-dim">Sandi</div>
+                    <div id="api-setup-stat-pass" class="text-[11px] font-bold text-slate-700 dark:text-cyber-text mt-0.5">-</div>
+                </div>
+            </div>
+
+            <!-- Mode: stream langsung atau rekaman -->
+                <div id="api-setup-mode-wrap" class="space-y-2">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[10px]">Mode</span>
+                        <span id="api-setup-mode-hint" class="text-[9px] text-slate-600 dark:text-cyber-dim">Semua contoh di bawah mengikuti mode ini</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button type="button" id="api-setup-mode-stream" onclick="window.setApiSetupMode('stream')"
+                            class="api-setup-mode px-3 py-2.5 rounded-lg text-[10px] font-mono border transition-colors min-h-[44px]">
+                            Stream Langsung
+                        </button>
+                        <button type="button" id="api-setup-mode-playback" onclick="window.setApiSetupMode('playback')"
+                            class="api-setup-mode px-3 py-2.5 rounded-lg text-[10px] font-mono border transition-colors min-h-[44px]">
+                            Rekaman (Playback)
+                        </button>
+                    </div>
+                    <p id="api-setup-mode-note" class="field-hint hidden"></p>
+                </div>
+
+                <!-- Pemilih kamera: URL di bawah ikut berubah -->
+            <div id="api-setup-camera-picker" class="hidden space-y-2">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <span class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[10px]">Pilih Kamera</span>
+                    <span class="text-[9px] text-slate-600 dark:text-cyber-dim">Dipanggil dengan &amp;camera=NOMOR</span>
+                </div>
+                <div id="api-setup-camera-tabs" class="flex flex-wrap gap-1.5"></div>
+            </div>
+
+            <!-- Metode 1: Embed Iframe -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[10px]" id="api-setup-m1-title">Metode 1: Pemutar Embed (Iframe HTML)</span>
+                    <button onclick="window.copySetupCode('api-setup-iframe-code', 'btn-copy-iframe')" id="btn-copy-iframe" class="text-[10px] text-sky-600 dark:text-cyber-primary hover:underline font-bold">Salin Code</button>
+                </div>
+                <p class="field-hint" id="api-setup-m1-desc">Gunakan kode HTML berikut untuk menyematkan pemutar video langsung di halaman web Anda.</p>
+                <textarea id="api-setup-iframe-code" readonly class="w-full h-16 p-2 bg-slate-900 text-sky-400 border border-slate-700 rounded text-[10px] font-mono focus:outline-none focus:border-sky-500 resize-none"></textarea>
+            </div>
+
+            <!-- Metode 2: REST API Endpoint -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[10px]" id="api-setup-m2-title">Metode 2: REST API Endpoint (JSON)</span>
+                    <button onclick="window.copySetupCode('api-setup-api-url', 'btn-copy-api')" id="btn-copy-api" class="text-[10px] text-sky-600 dark:text-cyber-primary hover:underline font-bold">Salin URL</button>
+                </div>
+                <p class="field-hint" id="api-setup-m2-desc">Gunakan HTTP GET request untuk mengambil detail stream format JSON (termasuk WebRTC / WHEP URL untuk player kustom).</p>
+                <textarea id="api-setup-api-url" readonly class="w-full h-12 p-2 bg-slate-900 text-sky-400 border border-slate-700 rounded text-[10px] font-mono focus:outline-none focus:border-sky-500 resize-none"></textarea>
+            </div>
+
+            <!-- Metode 3: Link Direct Player -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[10px]" id="api-setup-m3-title">Metode 3: URL Pemutar Langsung</span>
+                    <button onclick="window.copySetupCode('api-setup-direct-url', 'btn-copy-direct')" id="btn-copy-direct" class="text-[10px] text-sky-600 dark:text-cyber-primary hover:underline font-bold">Salin URL</button>
+                </div>
+                <p class="field-hint" id="api-setup-m3-desc">Link direct untuk membuka halaman pemutar mandiri.</p>
+                <textarea id="api-setup-direct-url" readonly class="w-full h-12 p-2 bg-slate-900 text-sky-400 border border-slate-700 rounded text-[10px] font-mono focus:outline-none focus:border-sky-500 resize-none"></textarea>
+            </div>
+
+            <div class="flex justify-end pt-2 ms-modal__divider">
+                <button type="button" onclick="window.closeApiSetupModal()"
+                    class="px-4 py-2 bg-slate-100 dark:bg-cyber-bg border border-slate-200 dark:border-cyber-outline hover:border-slate-300 dark:hover:border-white text-slate-600 dark:text-cyber-text text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Edit API Key Modal -->
+<div id="api-key-edit-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--pad" style="max-width: 42rem;">
+        <div class="ms-modal__head">
+            <div><h3 class="ms-modal__title">Edit API Key Integration</h3>
+                <p class="ms-modal__desc">Nama klien, kamera, dan batasan domainnya</p></div>
+            <button onclick="window.closeApiKeyEditModal()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        
+        <form id="api-key-edit-form" onsubmit="window.handleUpdateApiKey(event)" class="p-5 space-y-4">
+            <input type="hidden" id="edit-api-key-id">
+            
+            <div>
+                    <label for="edit-api-client-name" class="field-label">Nama Klien / Server Penerima</label>
+                    <input type="text" id="edit-api-client-name" required class="app-input w-full text-xs" placeholder="Contoh: Server A, Website Dinas">
+                </div>
+
+            <div>
+                <label for="edit-api-custom-camera-name" class="field-label">Judul Kamera Kustom (Opsional)</label>
+                <input type="text" id="edit-api-custom-camera-name" class="app-input w-full text-xs" placeholder="Contoh: Kamera Depan, Pos Jaga (Untuk menyamarkan nama asli)">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="edit-api-allowed-domain" class="field-label">Batasi Domain Asal (Whitelisting)</label>
+                    <input type="text" id="edit-api-allowed-domain" class="app-input w-full text-xs" placeholder="Contoh: domain.com (Kosongkan jika ingin PUBLIC)">
+                </div>
+                <div>
+                    <label for="edit-api-secret-pass" class="field-label">Password Keamanan Tambahan</label>
+                    <input type="text" id="edit-api-secret-pass" class="app-input w-full text-xs" placeholder="Kosongkan untuk tidak mengubah password">
+                </div>
+            </div>
+
+
+
+            <div>
+                <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                    <label class="field-label mb-0">Kamera (boleh lebih dari satu)</label>
+                    <div class="flex items-center gap-2">
+                        <span id="edit-api-cam-count" class="text-[10px] font-mono text-slate-500 dark:text-cyber-dim">0 dipilih</span>
+                        <button type="button" onclick="window.toggleAllApiCameras('edit-api', true)"
+                            class="px-2 py-1 text-[10px] font-mono uppercase rounded border border-slate-200 dark:border-cyber-outline text-slate-500 dark:text-cyber-dim hover:border-sky-400 dark:hover:border-cyber-primary transition-colors">Semua</button>
+                        <button type="button" onclick="window.toggleAllApiCameras('edit-api', false)"
+                            class="px-2 py-1 text-[10px] font-mono uppercase rounded border border-slate-200 dark:border-cyber-outline text-slate-500 dark:text-cyber-dim hover:border-rose-400 dark:hover:border-rose-500 transition-colors">Kosong</button>
+                    </div>
+                </div>
+                <input type="text" id="edit-api-cam-search" placeholder="Cari kamera..."
+                    oninput="window.filterApiCameraList('edit-api')"
+                    class="app-input w-full text-xs mb-2">
+                <div id="edit-api-camera-list"
+                    class="field-checklist-box">
+                    <p class="text-[10px] font-mono text-slate-500 dark:text-cyber-dim p-2">Memuat kamera...</p>
+                </div>
+                <p class="field-hint">Kamera pertama yang dicentang menjadi kamera utama (dipakai bila URL tanpa parameter camera).</p>
+            </div>
+
+
+            <div id="edit-api-order-wrap" class="hidden">
+                <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                    <label class="field-label mb-0">Urutan Kamera</label>
+                    <span class="text-[9px] text-slate-500 dark:text-cyber-dim font-mono">Nomor 1 = kamera utama</span>
+                </div>
+                <div id="edit-api-order-list" class="space-y-1.5 rounded-lg border border-slate-200/60 dark:border-cyber-outline/40 bg-slate-50 dark:bg-cyber-bg/40 p-2"></div>
+                <p class="field-hint">Klien memanggil <code>&amp;camera=1</code>, <code>&amp;camera=2</code>, dan seterusnya sesuai nomor di atas. Nomor 1 juga dipakai bila URL tanpa parameter camera.</p>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40">
+                <div class="flex items-center space-x-2.5">
+                    <div class="p-1.5 rounded-md bg-sky-500/10">
+                        <svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-sky-600 dark:text-cyber-primary font-mono">Sertakan playback jika ada</span>
+                        <span id="edit-api-playback-hint" class="text-[9px] text-slate-500 dark:text-cyber-dim font-mono">Klien boleh melihat rekaman kamera di atas</span>
+                    </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="edit-api-include-playback" class="sr-only peer">
+                    <div class="w-10 h-5 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-3 ms-modal__divider">
+                <button type="button" onclick="window.closeApiKeyEditModal()"
+                    class="px-4 py-2 bg-slate-100 dark:bg-cyber-bg border border-slate-200 dark:border-cyber-outline hover:border-slate-300 dark:hover:border-white text-slate-600 dark:text-cyber-text text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-sky-500 hover:bg-sky-600 dark:bg-cyber-primary dark:hover:bg-sky-500 text-white dark:text-cyber-bg text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-all duration-150 active:scale-95 shadow-sm shadow-sky-500/20">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL: Generate API Key Modal -->
+<div id="api-key-generate-modal" class="hidden ms-modal">
+    <div class="ms-modal__panel ms-modal__panel--pad" style="max-width: 42rem;">
+        <div class="ms-modal__head">
+            <div><h3 class="ms-modal__title">Generate New API Key</h3>
+                <p class="ms-modal__desc">Buat kunci baru untuk pemutar di server lain</p></div>
+            <button onclick="window.closeApiKeyGenerateModal()" class="text-slate-500 hover:text-slate-700 dark:text-cyber-dim dark:hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        
+        <form id="api-key-form" onsubmit="window.handleGenerateApiKey(event)" class="p-5 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="api-client-name" class="field-label">Nama Klien / Server Penerima</label>
+                    <input type="text" id="api-client-name" required class="app-input w-full text-xs" placeholder="Contoh: Server A, Website Dinas">
+                </div>
+                <div>
+                    <label for="api-custom-camera-name" class="field-label">Judul Kamera Kustom (Opsional)</label>
+                    <input type="text" id="api-custom-camera-name" class="app-input w-full text-xs" placeholder="Contoh: Kamera Depan, Pos Jaga (Untuk menyamarkan nama asli)">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="api-allowed-domain" class="field-label">Batasi Domain Asal (Whitelisting Referrer)</label>
+                    <input type="text" id="api-allowed-domain" class="app-input w-full text-xs" placeholder="Contoh: klien.com (Kosongkan jika ingin PUBLIC)">
+                    <p class="field-hint">Jika diisi, iframe hanya bisa diputar dari domain tersebut.</p>
+                </div>
+                <div>
+                    <label for="api-secret-pass" class="field-label">Password Keamanan Tambahan (Opsional)</label>
+                    <input type="text" id="api-secret-pass" class="app-input w-full text-xs" placeholder="Masukkan password tambahan (Kosongkan jika tanpa password)">
+                    <p class="field-hint">Jika diisi, pemanggil wajib menambahkan parameter &pass=... pada url.</p>
+                </div>
+            </div>
+
+
+
+            <div>
+                <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                    <label class="field-label mb-0">Pilih Kamera (boleh lebih dari satu)</label>
+                    <div class="flex items-center gap-2">
+                        <span id="api-cam-count" class="text-[10px] font-mono text-slate-500 dark:text-cyber-dim">0 dipilih</span>
+                        <button type="button" onclick="window.toggleAllApiCameras('api', true)"
+                            class="px-2 py-1 text-[10px] font-mono uppercase rounded border border-slate-200 dark:border-cyber-outline text-slate-500 dark:text-cyber-dim hover:border-sky-400 dark:hover:border-cyber-primary transition-colors">Semua</button>
+                        <button type="button" onclick="window.toggleAllApiCameras('api', false)"
+                            class="px-2 py-1 text-[10px] font-mono uppercase rounded border border-slate-200 dark:border-cyber-outline text-slate-500 dark:text-cyber-dim hover:border-rose-400 dark:hover:border-rose-500 transition-colors">Kosong</button>
+                    </div>
+                </div>
+                <input type="text" id="api-cam-search" placeholder="Cari kamera..."
+                    oninput="window.filterApiCameraList('api')"
+                    class="app-input w-full text-xs mb-2">
+                <div id="api-camera-list"
+                    class="field-checklist-box">
+                    <p class="text-[10px] font-mono text-slate-500 dark:text-cyber-dim p-2">Memuat kamera...</p>
+                </div>
+                <p class="field-hint">Kamera pertama yang dicentang menjadi kamera utama (dipakai bila URL tanpa parameter camera).</p>
+            </div>
+
+
+            <div id="api-order-wrap" class="hidden">
+                <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                    <label class="field-label mb-0">Urutan Kamera</label>
+                    <span class="text-[9px] text-slate-500 dark:text-cyber-dim font-mono">Nomor 1 = kamera utama</span>
+                </div>
+                <div id="api-order-list" class="space-y-1.5 rounded-lg border border-slate-200/60 dark:border-cyber-outline/40 bg-slate-50 dark:bg-cyber-bg/40 p-2"></div>
+                <p class="field-hint">Klien memanggil <code>&amp;camera=1</code>, <code>&amp;camera=2</code>, dan seterusnya sesuai nomor di atas. Nomor 1 juga dipakai bila URL tanpa parameter camera.</p>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-700/40">
+                <div class="flex items-center space-x-2.5">
+                    <div class="p-1.5 rounded-md bg-sky-500/10">
+                        <svg class="w-4 h-4 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-semibold text-sky-600 dark:text-cyber-primary font-mono">Sertakan playback jika ada</span>
+                        <span id="api-playback-hint" class="text-[9px] text-slate-500 dark:text-cyber-dim font-mono">Klien boleh melihat rekaman kamera di atas</span>
+                    </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="api-include-playback" class="sr-only peer">
+                    <div class="w-10 h-5 bg-slate-300 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-3 ms-modal__divider">
+                <button type="button" onclick="window.closeApiKeyGenerateModal()"
+                    class="px-4 py-2 bg-slate-100 dark:bg-cyber-bg border border-slate-200 dark:border-cyber-outline hover:border-slate-300 dark:hover:border-white text-slate-600 dark:text-cyber-text text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-colors">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="px-4 py-2 bg-sky-500 hover:bg-sky-600 dark:bg-cyber-primary dark:hover:bg-sky-500 text-white dark:text-cyber-bg text-xs font-bold uppercase tracking-wider font-mono rounded-md transition-all duration-150 active:scale-95 shadow-sm shadow-sky-500/20">
+                    Generate API Key
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
